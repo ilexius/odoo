@@ -37,7 +37,7 @@ import threading
 import time
 import werkzeug.utils
 import zipfile
-from collections import defaultdict, Mapping
+from collections import defaultdict, Mapping, OrderedDict
 from datetime import datetime
 from itertools import islice, izip, groupby
 from lxml import etree
@@ -63,7 +63,10 @@ _logger = logging.getLogger(__name__)
 
 # List of etree._Element subclasses that we choose to ignore when parsing XML.
 # We include the *Base ones just in case, currently they seem to be subclasses of the _* ones.
-SKIPPED_ELEMENT_TYPES = (etree._Comment, etree._ProcessingInstruction, etree.CommentBase, etree.PIBase)
+SKIPPED_ELEMENT_TYPES = (etree._Comment, etree._ProcessingInstruction, etree.CommentBase, etree.PIBase, etree._Entity)
+
+# Configure default global parser
+etree.set_default_parser(etree.XMLParser(resolve_entities=False))
 
 #----------------------------------------------------------
 # Subprocesses
@@ -505,6 +508,7 @@ ALL_LANGUAGES = {
         'es_UY': u'Spanish (UY) / Español (UY)',
         'es_VE': u'Spanish (VE) / Español (VE)',
         'et_EE': u'Estonian / Eesti keel',
+        'eu_ES': u'Basque / Euskara',
         'fa_IR': u'Persian / فارس',
         'fi_FI': u'Finnish / Suomi',
         'fr_BE': u'French (BE) / Français (BE)',
@@ -521,6 +525,7 @@ ALL_LANGUAGES = {
         'id_ID': u'Indonesian / Bahasa Indonesia',
         'it_IT': u'Italian / Italiano',
         'ja_JP': u'Japanese / 日本語',
+        'ka_GE': u'Georgian / ქართული ენა',
         'kab_DZ': u'Kabyle / Taqbaylit',
         'ko_KP': u'Korean (KP) / 한국어 (KP)',
         'ko_KR': u'Korean (KR) / 한국어 (KR)',
@@ -1270,6 +1275,17 @@ class frozendict(dict):
         raise NotImplementedError("'setdefault' not supported on frozendict")
     def update(self, *args, **kwargs):
         raise NotImplementedError("'update' not supported on frozendict")
+
+class OrderedSet(OrderedDict):
+    """ A simple collection that remembers the elements insertion order. """
+    def __init__(self, seq=()):
+        super(OrderedSet, self).__init__([(x, None) for x in seq])
+
+    def add(self, elem):
+        self[elem] = None
+
+    def discard(self, elem):
+        self.pop(elem, None)
 
 @contextmanager
 def ignore(*exc):
